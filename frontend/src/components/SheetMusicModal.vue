@@ -37,6 +37,66 @@
             </div>
 
             <form id="modal-sheet-music-form" @submit.prevent="handleSubmit">
+              <!-- Score image uploader -->
+              <div class="score-image-uploader mb-3">
+                <img
+                  v-if="previewUrl"
+                  :src="previewUrl"
+                  alt="Score sheet preview"
+                  class="score-image-preview"
+                />
+                <div v-else class="score-image-placeholder">
+                  <i class="bi bi-file-earmark-image"></i>
+                  <span>No score sheet image</span>
+                </div>
+
+                <div class="d-flex flex-wrap gap-2">
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-primary"
+                    @click="handleFileInput"
+                  >
+                    <i class="bi bi-upload me-1"></i>Upload
+                  </button>
+                  <button
+                    type="button"
+                    class="btn btn-sm btn-outline-secondary"
+                    @click="openCamera"
+                  >
+                    <i class="bi bi-camera me-1"></i>Take photo
+                  </button>
+                  <button
+                    v-if="previewUrl"
+                    type="button"
+                    class="btn btn-sm btn-outline-danger ms-auto"
+                    @click="clearScoreImage"
+                  >
+                    <i class="bi bi-x-lg me-1"></i>Remove
+                  </button>
+                </div>
+
+                <input
+                  ref="fileInput"
+                  type="file"
+                  accept="image/*"
+                  class="d-none"
+                  @change="onFileSelected"
+                />
+                <input
+                  ref="cameraInput"
+                  type="file"
+                  accept="image/*"
+                  capture="environment"
+                  class="d-none"
+                  @change="onFileSelected"
+                />
+
+                <div v-if="imageUploading" class="form-hint mt-2">
+                  <span class="spinner-border spinner-border-sm me-1"></span>Uploading image...
+                </div>
+                <div v-if="imageError" class="invalid-feedback d-block mt-2">{{ imageError }}</div>
+              </div>
+
               <div class="row g-3">
                 <div class="col-md-6">
                   <label class="form-label">
@@ -175,10 +235,24 @@ const errors = reactive({})
 const isSubmitting = ref(false)
 const submitError = ref('')
 
+const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
+const fileInput = ref(null)
+const cameraInput = ref(null)
+const uploadedUrl = ref('')
+const previewUrl = ref('')
+const imageUploading = ref(false)
+const imageError = ref('')
+
 const resetForm = () => {
   Object.keys(form).forEach(k => { form[k] = '' })
   Object.keys(errors).forEach(k => { delete errors[k] })
   submitError.value = ''
+  uploadedUrl.value = ''
+  previewUrl.value = ''
+  imageError.value = ''
+  imageUploading.value = false
+  if (fileInput.value) fileInput.value.value = ''
+  if (cameraInput.value) cameraInput.value.value = ''
 }
 
 const populateForm = () => {
@@ -190,6 +264,45 @@ const populateForm = () => {
     form.arranger = state.item.arranger || ''
     form.year = state.item.year
     form.genre = state.item.genre
+    uploadedUrl.value = state.item.scoreImg || ''
+    previewUrl.value = state.item.scoreImg ? `${API_BASE}${state.item.scoreImg}` : ''
+  }
+}
+
+const onFileSelected = (event) => {
+  const file = event.target.files && event.target.files[0]
+  if (!file) return
+  imageError.value = ''
+  previewUrl.value = URL.createObjectURL(file)
+  uploadImage(file)
+}
+
+const handleFileInput = () => {
+  if (fileInput.value) fileInput.value.click()
+}
+
+const openCamera = () => {
+  if (cameraInput.value) cameraInput.value.click()
+}
+
+const clearScoreImage = () => {
+  uploadedUrl.value = ''
+  previewUrl.value = ''
+  imageError.value = ''
+  if (fileInput.value) fileInput.value.value = ''
+  if (cameraInput.value) cameraInput.value.value = ''
+}
+
+const uploadImage = async (file) => {
+  imageUploading.value = true
+  try {
+    const result = await store.uploadScoreImage(file)
+    uploadedUrl.value = result.url
+  } catch (e) {
+    imageError.value = e.message || 'Image upload failed.'
+    previewUrl.value = ''
+  } finally {
+    imageUploading.value = false
   }
 }
 
@@ -218,6 +331,7 @@ const handleSubmit = async () => {
 }
 
 const submitForm = async () => {
+  if (imageUploading.value) return
   isSubmitting.value = true
   submitError.value = ''
 
@@ -227,7 +341,8 @@ const submitForm = async () => {
     composer: form.composer.trim(),
     arranger: form.arranger.trim() || null,
     year: form.year.trim(),
-    genre: form.genre
+    genre: form.genre,
+    score_img: uploadedUrl.value || null
   }
 
   try {

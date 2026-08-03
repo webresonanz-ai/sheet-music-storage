@@ -74,7 +74,7 @@ final class SheetMusicController
     }
 
     private const REQUIRED = ['title', 'composer', 'year', 'genre'];
-    private const ALL = ['title', 'subtitle', 'composer', 'arranger', 'year', 'genre'];
+    private const ALL = ['title', 'subtitle', 'composer', 'arranger', 'year', 'genre', 'score_img'];
 
     /**
      * @param array<string, mixed> $data
@@ -122,7 +122,7 @@ final class SheetMusicController
             if (!array_key_exists($field, $data)) {
                 continue;
             }
-            if ($field === 'subtitle' || $field === 'arranger') {
+            if ($field === 'subtitle' || $field === 'arranger' || $field === 'score_img') {
                 $result[$field] = $trim($data[$field]) !== '' ? $trim($data[$field]) : null;
             } else {
                 $result[$field] = $trim($data[$field]);

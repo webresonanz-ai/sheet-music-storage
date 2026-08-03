@@ -93,18 +93,20 @@ To add middleware: create a class implementing `MiddlewareInterface`, then
 
 ## API
 
-| Method   | URL                  | Description                     |
-|----------|----------------------|---------------------------------|
-| GET      | `/sheet-music`       | List all pieces (newest first)  |
-| POST     | `/sheet-music`       | Create a piece (HTTP 201)       |
-| GET      | `/sheet-music/{id}`  | Fetch a single piece            |
-| PUT/PATCH| `/sheet-music/{id}`  | Update a piece                  |
-| DELETE   | `/sheet-music/{id}`  | Delete a piece                  |
+| Method   | URL                            | Description                      |
+|----------|--------------------------------|----------------------------------|
+| GET      | `/api/sheet-music`                 | List all pieces (newest first)   |
+| POST     | `/api/sheet-music`                 | Create a piece (HTTP 201)        |
+| GET      | `/api/sheet-music/{id}`            | Fetch a single piece             |
+| PUT/PATCH| `/api/sheet-music/{id}`            | Update a piece                   |
+| DELETE   | `/api/sheet-music/{id}`            | Delete a piece                   |
+| POST     | `/api/uploads/score-img`           | Upload a score sheet image       |
+| GET      | `/api/uploads/score-img/{filename}`| Serve an uploaded score image    |
 
 Example:
 
 ```bash
-curl -X POST http://127.0.0.1:8000/sheet-music \
+curl -X POST http://127.0.0.1:8000/api/sheet-music \
   -H "Content-Type: application/json" \
   -d '{"title":"Gymnopedie No. 1","composer":"Erik Satie","year":1888,"genre":"Classical (1750 - 1820)"}'
 ```

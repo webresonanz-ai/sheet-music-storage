@@ -8,6 +8,7 @@ use App\Core\Router;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\ErrorHandlerMiddleware;
 use App\Middleware\JsonBodyMiddleware;
+use App\Controllers\ScoreImageController;
 use App\Controllers\SheetMusicController;
 
 $rootDir = __DIR__ . '/..';
@@ -25,13 +26,17 @@ Config::load($rootDir . '/.env');
 // --- Routes -----------------------------------------------------------
 $router = new Router();
 $sheetMusic = new SheetMusicController();
+$scoreImage = new ScoreImageController();
 
-$router->get('/sheet-music', [$sheetMusic, 'index']);
-$router->post('/sheet-music', [$sheetMusic, 'store']);
-$router->get('/sheet-music/{id}', [$sheetMusic, 'show']);
-$router->put('/sheet-music/{id}', [$sheetMusic, 'update']);
-$router->patch('/sheet-music/{id}', [$sheetMusic, 'update']);
-$router->delete('/sheet-music/{id}', [$sheetMusic, 'destroy']);
+$router->get('/api/sheet-music', [$sheetMusic, 'index']);
+$router->post('/api/sheet-music', [$sheetMusic, 'store']);
+$router->get('/api/sheet-music/{id}', [$sheetMusic, 'show']);
+$router->put('/api/sheet-music/{id}', [$sheetMusic, 'update']);
+$router->patch('/api/sheet-music/{id}', [$sheetMusic, 'update']);
+$router->delete('/api/sheet-music/{id}', [$sheetMusic, 'destroy']);
+
+$router->post('/api/uploads/score-img', [$scoreImage, 'upload']);
+$router->get('/api/uploads/score-img/{filename}', [$scoreImage, 'serve']);
 
 // --- Application (middleware runs in the order added) ----------------
 $app = new Application($router);

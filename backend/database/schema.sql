@@ -20,6 +20,7 @@ CREATE TABLE sheet_music (
     arranger    VARCHAR(255) NULL,
     year        INT UNSIGNED NOT NULL,
     genre       VARCHAR(80)  NOT NULL,
+    score_img   VARCHAR(255) NULL,
     created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
                             ON UPDATE CURRENT_TIMESTAMP,

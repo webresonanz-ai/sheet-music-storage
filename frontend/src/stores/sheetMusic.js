@@ -26,7 +26,7 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
     loading.value = true
     error.value = null
     try {
-      sheetMusicList.value = await request('/sheet-music')
+      sheetMusicList.value = await request('/api/sheet-music')
     } catch (e) {
       error.value = e.message
     } finally {
@@ -35,7 +35,7 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
   }
 
   const addSheetMusic = async (data) => {
-    const newItem = await request('/sheet-music', {
+    const newItem = await request('/api/sheet-music', {
       method: 'POST',
       body: JSON.stringify(data)
     })
@@ -44,7 +44,7 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
   }
 
   const updateSheetMusic = async (id, data) => {
-    const updated = await request(`/sheet-music/${id}`, {
+    const updated = await request(`/api/sheet-music/${id}`, {
       method: 'PUT',
       body: JSON.stringify(data)
     })
@@ -56,12 +56,26 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
   }
 
   const deleteSheetMusic = async (id) => {
-    await request(`/sheet-music/${id}`, { method: 'DELETE' })
+    await request(`/api/sheet-music/${id}`, { method: 'DELETE' })
     sheetMusicList.value = sheetMusicList.value.filter(item => item.id !== id)
   }
 
   const getSheetMusicById = (id) => {
     return sheetMusicList.value.find(item => item.id === id)
+  }
+
+  const uploadScoreImage = async (file) => {
+    const formData = new FormData()
+    formData.append('scoreImage', file)
+    const response = await fetch(`${API_BASE}/api/uploads/score-img`, {
+      method: 'POST',
+      body: formData
+    })
+    if (!response.ok) {
+      const body = await response.json().catch(() => ({}))
+      throw new Error(body.error || `Upload failed (${response.status})`)
+    }
+    return response.json()
   }
 
   const sortedSheetMusic = computed(() => {
@@ -80,6 +94,7 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
     addSheetMusic,
     updateSheetMusic,
     deleteSheetMusic,
+    uploadScoreImage,
     getSheetMusicById
   }
 })

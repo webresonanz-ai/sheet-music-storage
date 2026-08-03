@@ -46,8 +46,8 @@ final class SheetMusic
     public function create(array $data): array
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO sheet_music (title, subtitle, composer, arranger, year, genre)
-             VALUES (:title, :subtitle, :composer, :arranger, :year, :genre)'
+            'INSERT INTO sheet_music (title, subtitle, composer, arranger, year, genre, score_img)
+             VALUES (:title, :subtitle, :composer, :arranger, :year, :genre, :score_img)'
         );
 
         $stmt->execute([
@@ -57,6 +57,7 @@ final class SheetMusic
             'arranger' => $data['arranger'] ?? null,
             'year' => $data['year'],
             'genre' => $data['genre'],
+            'score_img' => $data['score_img'] ?? null,
         ]);
 
         return $this->findById((int) $this->db->lastInsertId());
@@ -79,7 +80,8 @@ final class SheetMusic
                     composer = :composer,
                     arranger = :arranger,
                     year = :year,
-                    genre = :genre
+                    genre = :genre,
+                    score_img = :score_img
               WHERE id = :id'
         );
 
@@ -91,6 +93,7 @@ final class SheetMusic
             'arranger' => $data['arranger'] ?? null,
             'year' => $data['year'],
             'genre' => $data['genre'],
+            'score_img' => $data['score_img'] ?? null,
         ]);
 
         return $this->findById($id);
@@ -129,6 +132,7 @@ final class SheetMusic
             'arranger' => $row['arranger'],
             'year' => (int) $row['year'],
             'genre' => $row['genre'],
+            'scoreImg' => $row['score_img'],
             'createdAt' => $row['created_at'],
             'updatedAt' => $row['updated_at'],
         ];

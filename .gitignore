@@ -40,3 +40,4 @@ __screenshots__/
 
 .env
 .vscode
+/backend/upload
