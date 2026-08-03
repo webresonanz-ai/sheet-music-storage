@@ -11,13 +11,15 @@ const router = createRouter({
     },
     {
       path: '/add',
-      name: 'add',
-      component: () => import('../views/AddSheetMusic.vue')
+      redirect: '/'
     },
     {
       path: '/edit/:id',
-      name: 'edit',
-      component: () => import('../views/EditSheetMusic.vue')
+      redirect: '/'
+    },
+    {
+      path: '/:pathMatch(.*)*',
+      redirect: '/'
     }
   ]
 })
