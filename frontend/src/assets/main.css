@@ -25,6 +25,10 @@
   --era-classical-soft: #e2f6f4;
   --era-romantic: #6d5bd0;
   --era-romantic-soft: #efecfc;
+  --era-renaissance: #e8762c;
+  --era-renaissance-soft: #fdefe3;
+  --era-modern: #c0558a;
+  --era-modern-soft: #fce9f2;
 
   --radius: 16px;
   --radius-sm: 10px;
@@ -405,7 +409,39 @@ a {
 .era-baroque { color: var(--era-baroque); background: var(--era-baroque-soft); }
 .era-classical { color: var(--era-classical); background: var(--era-classical-soft); }
 .era-romantic { color: var(--era-romantic); background: var(--era-romantic-soft); }
+.era-renaissance { color: var(--era-renaissance); background: var(--era-renaissance-soft); }
+.era-modern { color: var(--era-modern); background: var(--era-modern-soft); }
 .era-neutral { color: var(--muted); background: #eef1f6; }
+
+/* Pagination bar */
+.pagination-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.85rem 1.25rem;
+  border-top: 1px solid #eef1f5;
+  font-size: 0.85rem;
+}
+
+.pagination-bar .page-link {
+  min-width: 32px;
+  text-align: center;
+  color: var(--ink);
+  border-color: #e5e9f0;
+  padding: 0.35rem 0.6rem;
+}
+
+.pagination-bar .page-item.active .page-link {
+  background: var(--primary);
+  border-color: var(--primary);
+  color: #fff;
+}
+
+.pagination-bar .page-item.disabled .page-link {
+  color: #b9c2ce;
+}
 
 /* Year pill */
 .year-pill {

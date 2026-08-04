@@ -179,6 +179,7 @@
                     v-model="form.genre"
                     class="form-select"
                     :class="{ 'is-invalid': errors.genre }"
+                    @change="genreAuto = false"
                     required
                   >
                     <option value="" disabled>Select an era...</option>
@@ -221,10 +222,12 @@ const store = useSheetMusicStore()
 const { state, closeModal } = useSheetMusicModal()
 
 const genres = [
-  'Medieval & Renaissance (500 - 1600)',
-  'Baroque (1600 - 1750)',
-  'Classical (1750 - 1820)',
-  'Romantic, Modern & Contemporary (1820 - now)'
+  'Early/Medieval Era (550 - 1400)',
+  'Renaissance Era (1400 - 1600)',
+  'Baroque Era (1600 - 1750)',
+  'Classical Era (1750 - 1820)',
+  'Romantic Era (1820 - 1910)',
+  'Contemporary/Modern Era (1910 - Present)'
 ]
 
 const isEdit = computed(() => state.mode === 'edit')
@@ -251,6 +254,7 @@ const resetForm = () => {
   previewUrl.value = ''
   imageError.value = ''
   imageUploading.value = false
+  genreAuto = false
   if (fileInput.value) fileInput.value.value = ''
   if (cameraInput.value) cameraInput.value.value = ''
 }
@@ -263,7 +267,8 @@ const populateForm = () => {
     form.composer = state.item.composer
     form.arranger = state.item.arranger || ''
     form.year = state.item.year != null ? String(state.item.year) : ''
-    form.genre = state.item.genre
+    form.genre = genres.find(g => shortGenreName(g) === state.item.genre) || state.item.genre
+    genreAuto = true
     uploadedUrl.value = state.item.scoreImg || ''
     previewUrl.value = state.item.scoreImg ? `${API_BASE}${state.item.scoreImg}` : ''
   }
@@ -307,7 +312,45 @@ const uploadImage = async (file) => {
 }
 
 watch(() => state.open, (opened) => {
-  if (opened) populateForm()
+  if (opened) {
+    clearTimeout(yearSuggestionTimer)
+    populateForm()
+  }
+})
+
+const suggestGenreFromYear = (year) => {
+  const num = parseInt(year, 10)
+  if (!year || isNaN(num)) return ''
+  const ranges = [
+    { min: 550, max: 1400, genre: 'Early/Medieval Era (550 - 1400)' },
+    { min: 1400, max: 1600, genre: 'Renaissance Era (1400 - 1600)' },
+    { min: 1600, max: 1750, genre: 'Baroque Era (1600 - 1750)' },
+    { min: 1750, max: 1820, genre: 'Classical Era (1750 - 1820)' },
+    { min: 1820, max: 1910, genre: 'Romantic Era (1820 - 1910)' },
+    { min: 1910, max: Infinity, genre: 'Contemporary/Modern Era (1910 - Present)' }
+  ]
+  const match = ranges.find(r => num >= r.min && num <= r.max)
+  return match ? match.genre : ''
+}
+
+const shortGenreName = (genre) => {
+  if (!genre) return ''
+  return genre.split(' (')[0].replace(/\s*Era$/, '')
+}
+
+let yearSuggestionTimer = null
+let genreAuto = false
+watch(() => form.year, (year) => {
+  clearTimeout(yearSuggestionTimer)
+  if (!year || !form.genre || genreAuto) {
+    yearSuggestionTimer = setTimeout(() => {
+      const suggested = suggestGenreFromYear(year)
+      if (suggested) {
+        form.genre = suggested
+        genreAuto = true
+      }
+    }, 1000)
+  }
 })
 
 const validateForm = () => {
@@ -341,7 +384,7 @@ const submitForm = async () => {
     composer: form.composer.trim(),
     arranger: form.arranger.trim() || null,
     year: form.year.trim(),
-    genre: form.genre,
+    genre: shortGenreName(form.genre),
     score_img: uploadedUrl.value || null
   }
 

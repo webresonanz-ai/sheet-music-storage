@@ -12,8 +12,8 @@
               My Sheet Music Collection
             </h1>
             <p class="lead__muted mb-0">
-              <span class="fw-semibold">{{ store.totalCount }}</span>
-              {{ store.totalCount === 1 ? 'piece' : 'pieces' }}
+              <span class="fw-semibold">{{ store.stats.total }}</span>
+              {{ store.stats.total === 1 ? 'piece' : 'pieces' }}
               &middot; spanning {{ erasCovered }} of {{ totalEras }} eras
             </p>
             <span
@@ -42,7 +42,7 @@
         <div class="d-flex align-items-center gap-3">
           <span class="stat-icon" style="background: #e9f2ff; color: #1d6ed2"><i class="bi bi-music-note-list"></i></span>
           <div>
-            <div class="stat-value">{{ store.totalCount }}</div>
+            <div class="stat-value">{{ store.stats.total }}</div>
             <div class="stat-label">Musical pieces</div>
           </div>
         </div>
@@ -161,7 +161,7 @@
     </div>
 
     <!-- List -->
-    <div v-else-if="filteredAndSortedList.length > 0" class="table-panel mt-2">
+    <div v-else-if="pagedList.length > 0" class="table-panel mt-2">
       <div class="table-responsive">
         <table class="table table-hover table-custom mb-0">
           <thead>
@@ -175,7 +175,7 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="item in filteredAndSortedList" :key="item.id">
+            <tr v-for="item in pagedList" :key="item.id">
               <td>
                 <div class="piece-title">{{ item.title }}</div>
                 <div class="piece-subtitle" v-if="item.subtitle">{{ item.subtitle }}</div>
@@ -220,6 +220,29 @@
             </tr>
           </tbody>
         </table>
+      </div>
+
+      <!-- Pagination -->
+      <div v-if="totalPages > 1" class="pagination-bar">
+        <span class="text-muted me-2">{{ filteredCount }} items &middot; page {{ currentPage }} of {{ totalPages }}</span>
+        <nav>
+          <ul class="pagination pagination-sm mb-0">
+            <li class="page-item" :class="{ disabled: currentPage === 1 }">
+              <button class="page-link" @click="goToPage(currentPage - 1)">&laquo;</button>
+            </li>
+            <li
+              v-for="page in pageNumbers"
+              :key="page"
+              class="page-item"
+              :class="{ active: currentPage === page }"
+            >
+              <button class="page-link" @click="goToPage(page)">{{ page }}</button>
+            </li>
+            <li class="page-item" :class="{ disabled: currentPage === totalPages }">
+              <button class="page-link" @click="goToPage(currentPage + 1)">&raquo;</button>
+            </li>
+          </ul>
+        </nav>
       </div>
     </div>
 
@@ -269,7 +292,7 @@
 </template>
 
 <script setup>
-import { ref, computed, onMounted } from 'vue'
+import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useSheetMusicStore } from '../stores/sheetMusic'
 import { useAuthStore } from '../stores/auth'
 import { useSheetMusicModal } from '../composables/sheetMusicModal'
@@ -281,14 +304,18 @@ const { openAdd, openEdit } = useSheetMusicModal()
 const searchQuery = ref('')
 const filterGenre = ref('')
 const sortBy = ref('newest')
+const currentPage = ref(1)
 const itemToDelete = ref(null)
 let deleteModal = null
+let searchTimer = null
 
 const genres = {
-  medieval: { name: 'Medieval & Renaissance (500 - 1600)', short: 'Medieval', dot: '#b96a2c' },
-  baroque: { name: 'Baroque (1600 - 1750)', short: 'Baroque', dot: '#1d6ed2' },
-  classical: { name: 'Classical (1750 - 1820)', short: 'Classical', dot: '#0f9d8f' },
-  romantic: { name: 'Romantic, Modern & Contemporary (1820 - now)', short: 'Modern', dot: '#6d5bd0' }
+  medieval: { name: 'Early/Medieval', short: 'Medieval', dot: '#b96a2c' },
+  renaissance: { name: 'Renaissance', short: 'Renaissance', dot: '#e8762c' },
+  baroque: { name: 'Baroque', short: 'Baroque', dot: '#1d6ed2' },
+  classical: { name: 'Classical', short: 'Classical', dot: '#0f9d8f' },
+  romantic: { name: 'Romantic', short: 'Romantic', dot: '#6d5bd0' },
+  modern: { name: 'Contemporary/Modern', short: 'Modern', dot: '#c0558a' }
 }
 
 const totalEras = Object.values(genres).length
@@ -296,7 +323,7 @@ const totalEras = Object.values(genres).length
 const genreList = computed(() =>
   Object.values(genres).map(g => ({
     ...g,
-    count: store.sheetMusicList.filter(i => i.genre === g.name).length
+    count: store.genreCounts[g.name] || 0
   }))
 )
 
@@ -304,27 +331,36 @@ const hasQuery = computed(
   () => !!(searchQuery.value || filterGenre.value)
 )
 
-const uniqueComposers = computed(() =>
-  new Set(store.sheetMusicList.map(i => i.composer)).size
-)
-
-const erasCovered = computed(() =>
-  new Set(store.sheetMusicList.map(i => i.genre)).size
-)
+const uniqueComposers = computed(() => store.stats.uniqueComposers)
+const erasCovered = computed(() => store.stats.erasCovered)
 
 const yearSpanLabel = computed(() => {
-  const years = store.sheetMusicList.map(i => Number(i.year))
-  if (years.length === 0) return '—'
-  const min = Math.min(...years)
-  const max = Math.max(...years)
-  return min === max ? String(min) : `${min}–${max}`
+  const { minYear, maxYear } = store.stats
+  if (minYear == null) return '—'
+  return minYear === maxYear ? String(minYear) : `${minYear}–${maxYear}`
 })
 
-const filteredCount = computed(() => filteredAndSortedList.value.length)
+const filteredCount = computed(() => store.meta.total)
+const totalPages = computed(() => store.meta.totalPages)
+const pageSize = computed(() => store.meta.pageSize)
+const pagedList = computed(() => store.sheetMusicList)
+
+const reload = async () => {
+  await store.loadFromApi({
+    search: searchQuery.value.trim(),
+    genre: filterGenre.value,
+    sort: sortBy.value,
+    page: currentPage.value
+  })
+}
 
 onMounted(() => {
   deleteModal = new Modal(document.getElementById('deleteModal'))
-  store.loadFromApi()
+  reload()
+})
+
+onBeforeUnmount(() => {
+  clearTimeout(searchTimer)
 })
 
 const setGenre = (genre) => { filterGenre.value = genre }
@@ -340,10 +376,12 @@ const shortGenre = (name) => {
 
 const getGenreClass = (genre) => {
   const map = {
-    'Medieval & Renaissance (500 - 1600)': 'genre-badge era-medieval',
-    'Baroque (1600 - 1750)': 'genre-badge era-baroque',
-    'Classical (1750 - 1820)': 'genre-badge era-classical',
-    'Romantic, Modern & Contemporary (1820 - now)': 'genre-badge era-romantic'
+    'Early/Medieval': 'genre-badge era-medieval',
+    'Renaissance': 'genre-badge era-renaissance',
+    'Baroque': 'genre-badge era-baroque',
+    'Classical': 'genre-badge era-classical',
+    'Romantic': 'genre-badge era-romantic',
+    'Contemporary/Modern': 'genre-badge era-modern'
   }
   return map[genre] || 'genre-badge era-neutral'
 }
@@ -355,46 +393,41 @@ const formatDate = (iso) => {
   return d.toLocaleDateString(undefined, { month: 'short', day: 'numeric', year: 'numeric' })
 }
 
-const filteredAndSortedList = computed(() => {
-  let list = [...store.sheetMusicList]
+watch(searchQuery, () => {
+  clearTimeout(searchTimer)
+  searchTimer = setTimeout(() => {
+    currentPage.value = 1
+    reload()
+  }, 400)
+})
 
-  if (searchQuery.value) {
-    const q = searchQuery.value.toLowerCase()
-    list = list.filter(
-      item =>
-        item.title.toLowerCase().includes(q) ||
-        item.composer.toLowerCase().includes(q) ||
-        (item.arranger && item.arranger.toLowerCase().includes(q)) ||
-        (item.subtitle && item.subtitle.toLowerCase().includes(q))
-    )
+watch([filterGenre, sortBy], () => {
+  currentPage.value = 1
+  reload()
+})
+
+const goToPage = (page) => {
+  if (page < 1 || page > totalPages.value || page === currentPage.value) return
+  currentPage.value = page
+  reload()
+  document.querySelector('.table-panel')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+}
+
+const pageNumbers = computed(() => {
+  const pages = []
+  const total = totalPages.value
+  let start = Math.max(1, currentPage.value - 2)
+  let end = Math.min(total, currentPage.value + 2)
+  if (currentPage.value <= 3) {
+    start = 1
+    end = Math.min(total, 5)
   }
-
-  if (filterGenre.value) {
-    list = list.filter(item => item.genre === filterGenre.value)
+  if (currentPage.value >= total - 2) {
+    start = Math.max(1, total - 4)
+    end = total
   }
-
-  switch (sortBy.value) {
-    case 'newest':
-      list.sort((a, b) => b.createdAt.localeCompare(a.createdAt))
-      break
-    case 'oldest':
-      list.sort((a, b) => a.createdAt.localeCompare(b.createdAt))
-      break
-    case 'year-asc':
-      list.sort((a, b) => a.year - b.year)
-      break
-    case 'year-desc':
-      list.sort((a, b) => b.year - a.year)
-      break
-    case 'title':
-      list.sort((a, b) => a.title.localeCompare(b.title))
-      break
-    case 'composer':
-      list.sort((a, b) => a.composer.localeCompare(b.composer))
-      break
-  }
-
-  return list
+  for (let i = start; i <= end; i++) pages.push(i)
+  return pages
 })
 
 const confirmDelete = (item) => {

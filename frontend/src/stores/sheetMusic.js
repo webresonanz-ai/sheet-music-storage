@@ -8,6 +8,11 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
   const sheetMusicList = ref([])
   const loading = ref(false)
   const error = ref(null)
+  const meta = ref({ total: 0, page: 1, pageSize: 8, totalPages: 1 })
+  const genreCounts = ref({})
+  const stats = ref({ total: 0, uniqueComposers: 0, erasCovered: 0, minYear: null, maxYear: null })
+
+  const currentParams = ref({ search: '', genre: '', sort: 'newest', page: 1 })
 
   const authHeaders = () => {
     const auth = useAuthStore()
@@ -28,15 +33,38 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
     return response.json()
   }
 
-  const loadFromApi = async () => {
+  const buildQuery = (params = {}) => {
+    const merged = { ...currentParams.value, ...params }
+    currentParams.value = merged
+    const query = new URLSearchParams()
+    if (merged.search) query.set('search', merged.search)
+    if (merged.genre) query.set('genre', merged.genre)
+    if (merged.sort) query.set('sort', merged.sort)
+    query.set('page', String(merged.page))
+    query.set('page_size', String(meta.value.pageSize || 8))
+    return query.toString()
+  }
+
+  const loadFromApi = async (params = {}) => {
     loading.value = true
     error.value = null
     try {
-      sheetMusicList.value = await request('/api/sheet-music')
+      const result = await request(`/api/sheet-music?${buildQuery(params)}`)
+      sheetMusicList.value = result.data
+      meta.value = result.meta
+      genreCounts.value = result.counts.genres
+      stats.value = result.stats
     } catch (e) {
       error.value = e.message
     } finally {
       loading.value = false
+    }
+  }
+
+  const refresh = async () => {
+    await loadFromApi({ page: currentParams.value.page })
+    if (meta.value.total > 0 && currentParams.value.page > meta.value.totalPages) {
+      await loadFromApi({ page: meta.value.totalPages })
     }
   }
 
@@ -45,7 +73,8 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
       method: 'POST',
       body: JSON.stringify(data)
     })
-    sheetMusicList.value.unshift(newItem)
+    currentParams.value.page = 1
+    await refresh()
     return newItem
   }
 
@@ -54,16 +83,13 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
       method: 'PUT',
       body: JSON.stringify(data)
     })
-    const index = sheetMusicList.value.findIndex(item => item.id === id)
-    if (index !== -1) {
-      sheetMusicList.value[index] = updated
-    }
+    await refresh()
     return updated
   }
 
   const deleteSheetMusic = async (id) => {
     await request(`/api/sheet-music/${id}`, { method: 'DELETE' })
-    sheetMusicList.value = sheetMusicList.value.filter(item => item.id !== id)
+    await refresh()
   }
 
   const getSheetMusicById = (id) => {
@@ -89,15 +115,20 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
     return [...sheetMusicList.value].sort((a, b) => b.createdAt.localeCompare(a.createdAt))
   })
 
-  const totalCount = computed(() => sheetMusicList.value.length)
+  const totalCount = computed(() => meta.value.total)
 
   return {
     sheetMusicList,
     loading,
     error,
+    meta,
+    genreCounts,
+    stats,
     sortedSheetMusic,
     totalCount,
+    currentParams,
     loadFromApi,
+    refresh,
     addSheetMusic,
     updateSheetMusic,
     deleteSheetMusic,

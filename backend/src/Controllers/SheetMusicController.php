@@ -22,7 +22,26 @@ final class SheetMusicController
 
     public function index(Request $request): Response
     {
-        return Response::json($this->model->findAll());
+        $search = trim($request->query('search'));
+        $genre = $request->query('genre');
+        $sort = $request->query('sort', 'newest');
+        $page = max(1, (int) $request->query('page', '1'));
+        $pageSize = max(1, min(100, (int) $request->query('page_size', '8')));
+
+        $result = $this->model->findPaginated($search, $genre, $sort, $page, $pageSize);
+        $totalPages = max(1, (int) ceil($result['total'] / $pageSize));
+
+        return Response::json([
+            'data' => $result['rows'],
+            'meta' => [
+                'total' => $result['total'],
+                'page' => $page,
+                'pageSize' => $pageSize,
+                'totalPages' => $totalPages,
+            ],
+            'counts' => ['genres' => $this->model->genreCounts()],
+            'stats' => $this->model->aggregate(),
+        ]);
     }
 
     public function show(Request $request, int $id): Response
