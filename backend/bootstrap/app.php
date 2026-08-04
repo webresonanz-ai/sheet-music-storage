@@ -5,9 +5,11 @@ declare(strict_types=1);
 use App\Core\Application;
 use App\Core\Config;
 use App\Core\Router;
+use App\Middleware\AuthMiddleware;
 use App\Middleware\CorsMiddleware;
 use App\Middleware\ErrorHandlerMiddleware;
 use App\Middleware\JsonBodyMiddleware;
+use App\Controllers\AuthController;
 use App\Controllers\ScoreImageController;
 use App\Controllers\SheetMusicController;
 
@@ -27,7 +29,15 @@ Config::load($rootDir . '/.env');
 $router = new Router();
 $sheetMusic = new SheetMusicController();
 $scoreImage = new ScoreImageController();
+$auth = new AuthController();
 
+// Auth (public)
+$router->post('/api/auth/register', [$auth, 'register']);
+$router->post('/api/auth/login', [$auth, 'login']);
+$router->post('/api/auth/logout', [$auth, 'logout']);
+$router->get('/api/auth/me', [$auth, 'me']);
+
+// Sheet music (protected by AuthMiddleware)
 $router->get('/api/sheet-music', [$sheetMusic, 'index']);
 $router->post('/api/sheet-music', [$sheetMusic, 'store']);
 $router->get('/api/sheet-music/{id}', [$sheetMusic, 'show']);
@@ -43,6 +53,7 @@ $app = new Application($router);
 
 $app->addMiddleware(new CorsMiddleware());          // outermost
 $app->addMiddleware(new ErrorHandlerMiddleware());
-$app->addMiddleware(new JsonBodyMiddleware());
+$app->addMiddleware(new AuthMiddleware());
+$app->addMiddleware(new JsonBodyMiddleware());      // innermost
 
 return $app;

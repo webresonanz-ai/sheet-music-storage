@@ -29,12 +29,41 @@
           </button>
 
           <div class="navbar-menu" :class="{ open: navOpen }">
-            <router-link class="nav-link" to="/" @click="closeNav">
-              <i class="bi bi-collection me-1"></i>Collection
-            </router-link>
-            <button type="button" class="btn btn-primary btn-sm btn-nav-add" @click="handleAdd">
-              <i class="bi bi-plus-lg me-1"></i>Add Piece
-            </button>
+            <template v-if="auth.isAuthenticated">
+              <router-link class="nav-link" to="/" @click="closeNav">
+                <i class="bi bi-collection me-1"></i>Collection
+              </router-link>
+              <button
+                v-if="auth.isAdmin"
+                type="button"
+                class="btn btn-primary btn-sm btn-nav-add"
+                @click="handleAdd"
+              >
+                <i class="bi bi-plus-lg me-1"></i>Add Piece
+              </button>
+              <span class="nav-user">
+                <span class="nav-user-avatar">{{ initials }}</span>
+                <span class="nav-user-name d-none d-lg-inline">{{ auth.user?.name }}</span>
+                <span v-if="!auth.isAdmin" class="nav-role-badge">Guest</span>
+                <button
+                  type="button"
+                  class="nav-logout"
+                  title="Sign out"
+                  @click="handleLogout"
+                >
+                  <i class="bi bi-box-arrow-right"></i>
+                </button>
+              </span>
+            </template>
+
+            <template v-else>
+              <router-link class="nav-link" to="/login" @click="closeNav">
+                <i class="bi bi-box-arrow-in-right me-1"></i>Sign in
+              </router-link>
+              <router-link class="btn btn-primary btn-sm btn-nav-add" to="/register" @click="closeNav">
+                <i class="bi bi-person-plus me-1"></i>Register
+              </router-link>
+            </template>
           </div>
         </div>
       </div>
@@ -66,26 +95,46 @@
 </template>
 
 <script setup>
-import { ref, watch, onMounted } from 'vue'
-import { useRoute } from 'vue-router'
+import { ref, computed, watch, onMounted } from 'vue'
+import { useRoute, useRouter } from 'vue-router'
 import SheetMusicModal from './components/SheetMusicModal.vue'
 import { useSheetMusicModal } from './composables/sheetMusicModal'
+import { useAuthStore } from './stores/auth'
 
 const { openAdd } = useSheetMusicModal()
 const route = useRoute()
+const router = useRouter()
+const auth = useAuthStore()
 
 const navOpen = ref(false)
 const toggleNav = () => { navOpen.value = !navOpen.value }
 const closeNav = () => { navOpen.value = false }
 const handleAdd = () => { closeNav(); openAdd() }
 
+const initials = computed(() => {
+  const name = auth.user?.name || ''
+  const parts = name.trim().split(/\s+/).filter(Boolean)
+  if (parts.length === 0) return '?'
+  return (parts[0][0] + (parts[1]?.[0] || '')).toUpperCase()
+})
+
+const handleLogout = async () => {
+  await auth.logout()
+  closeNav()
+  router.push({ name: 'login' })
+}
+
 watch(() => route.path, () => closeNav())
 
-onMounted(() => {
+onMounted(async () => {
   const link = document.createElement('link')
   link.rel = 'stylesheet'
   link.href = 'https://cdn.jsdelivr.net/npm/bootstrap-icons@1.11.3/font/bootstrap-icons.css'
   document.head.appendChild(link)
+
+  if (auth.token) {
+    auth.fetchMe().catch(() => {})
+  }
 })
 </script>
 
@@ -167,6 +216,70 @@ onMounted(() => {
   align-items: center;
 }
 
+/* Auth user chip */
+.nav-user {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-left: 6px;
+  padding: 5px 8px;
+  border: 1px solid var(--border);
+  border-radius: 999px;
+  background: #fbfdff;
+}
+
+.nav-user-avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  background: var(--gradient);
+  color: #fff;
+  font-weight: 700;
+  font-size: 0.8rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.nav-user-name {
+  color: var(--ink);
+  font-weight: 600;
+  font-size: 0.85rem;
+  max-width: 140px;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.nav-logout {
+  width: 28px;
+  height: 28px;
+  border: none;
+  border-radius: 50%;
+  background: transparent;
+  color: var(--muted);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  transition: all 0.18s ease;
+}
+
+.nav-logout:hover {
+  background: #fdeaea;
+  color: #d4380d;
+}
+
+.nav-role-badge {
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: var(--primary-soft);
+  color: var(--primary);
+  font-size: 0.68rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
 @media (max-width: 991.98px) {
   .navbar-toggler {
     display: inline-flex;
@@ -216,6 +329,17 @@ onMounted(() => {
     margin-top: 6px;
     padding: 9px 14px;
     border-radius: 10px;
+  }
+
+  .navbar-menu .nav-user {
+    justify-content: center;
+    margin: 8px 0 2px;
+    padding: 7px 10px;
+    width: 100%;
+  }
+
+  .navbar-menu .nav-logout {
+    margin-left: auto;
   }
 }
 </style>

@@ -1,5 +1,6 @@
 import { defineStore } from 'pinia'
 import { ref, computed } from 'vue'
+import { useAuthStore } from './auth'
 
 const API_BASE = import.meta.env.VITE_API_BASE_URL || 'http://localhost:8000'
 
@@ -8,9 +9,14 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
   const loading = ref(false)
   const error = ref(null)
 
+  const authHeaders = () => {
+    const auth = useAuthStore()
+    return auth.token ? { Authorization: `Bearer ${auth.token}` } : {}
+  }
+
   const request = async (path, options = {}) => {
     const response = await fetch(`${API_BASE}${path}`, {
-      headers: { 'Content-Type': 'application/json' },
+      headers: { 'Content-Type': 'application/json', ...authHeaders(), ...options.headers },
       ...options
     })
 
@@ -69,6 +75,7 @@ export const useSheetMusicStore = defineStore('sheetMusic', () => {
     formData.append('scoreImage', file)
     const response = await fetch(`${API_BASE}/api/uploads/score-img`, {
       method: 'POST',
+      headers: authHeaders(),
       body: formData
     })
     if (!response.ok) {

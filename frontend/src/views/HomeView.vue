@@ -16,9 +16,21 @@
               {{ store.totalCount === 1 ? 'piece' : 'pieces' }}
               &middot; spanning {{ erasCovered }} of {{ totalEras }} eras
             </p>
+            <span
+              v-if="!auth.isAdmin"
+              class="badge rounded-pill mt-2"
+              style="background: rgba(255, 255, 255, 0.16); color: rgba(255, 255, 255, 0.9)"
+            >
+              <i class="bi bi-eye me-1"></i>Viewing as guest &middot; read-only
+            </span>
           </div>
         </div>
-        <button type="button" class="btn btn-primary btn-lg px-xl-4" @click="openAdd">
+        <button
+          v-if="auth.isAdmin"
+          type="button"
+          class="btn btn-primary btn-lg px-xl-4"
+          @click="openAdd"
+        >
           <i class="bi bi-plus-lg me-2"></i>Add New Sheet Music
         </button>
       </div>
@@ -185,22 +197,25 @@
                 <span class="piece-subtitle">{{ formatDate(item.createdAt) }}</span>
               </td>
               <td class="text-end">
-                <div class="btn-group gap-2">
-                  <button
-                    @click="openEdit(item)"
-                    class="btn btn-outline-primary btn-icon edit"
-                    title="Edit"
-                  >
-                    <i class="bi bi-pencil"></i>
-                  </button>
-                  <button
-                    @click="confirmDelete(item)"
-                    class="btn btn-outline-secondary btn-icon trash"
-                    title="Delete"
-                  >
-                    <i class="bi bi-trash"></i>
-                  </button>
-                </div>
+                <template v-if="auth.isAdmin">
+                  <div class="btn-group gap-2">
+                    <button
+                      @click="openEdit(item)"
+                      class="btn btn-outline-primary btn-icon edit"
+                      title="Edit"
+                    >
+                      <i class="bi bi-pencil"></i>
+                    </button>
+                    <button
+                      @click="confirmDelete(item)"
+                      class="btn btn-outline-secondary btn-icon trash"
+                      title="Delete"
+                    >
+                      <i class="bi bi-trash"></i>
+                    </button>
+                  </div>
+                </template>
+                <span v-else class="piece-subtitle"><i class="bi bi-lock me-1"></i>Read-only</span>
               </td>
             </tr>
           </tbody>
@@ -219,7 +234,7 @@
           {{ hasQuery ? 'Try adjusting your search or clearing era filters.' : 'Start by adding your first sheet music piece.' }}
         </p>
         <button
-          v-if="!hasQuery"
+          v-if="!hasQuery && auth.isAdmin"
           type="button"
           class="btn btn-primary btn-lg"
           @click="openAdd"
@@ -256,10 +271,12 @@
 <script setup>
 import { ref, computed, onMounted } from 'vue'
 import { useSheetMusicStore } from '../stores/sheetMusic'
+import { useAuthStore } from '../stores/auth'
 import { useSheetMusicModal } from '../composables/sheetMusicModal'
 import { Modal } from 'bootstrap'
 
 const store = useSheetMusicStore()
+const auth = useAuthStore()
 const { openAdd, openEdit } = useSheetMusicModal()
 const searchQuery = ref('')
 const filterGenre = ref('')

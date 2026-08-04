@@ -262,7 +262,7 @@ const populateForm = () => {
     form.subtitle = state.item.subtitle || ''
     form.composer = state.item.composer
     form.arranger = state.item.arranger || ''
-    form.year = state.item.year
+    form.year = state.item.year != null ? String(state.item.year) : ''
     form.genre = state.item.genre
     uploadedUrl.value = state.item.scoreImg || ''
     previewUrl.value = state.item.scoreImg ? `${API_BASE}${state.item.scoreImg}` : ''

@@ -10,6 +10,7 @@ namespace App\Core;
 final class Request
 {
     private array $headers;
+    private ?array $user = null;
 
     /** @param array<string, string> $headers */
     private function __construct(
@@ -73,5 +74,23 @@ final class Request
         $clone = clone $this;
         $clone->jsonBody = $body;
         return $clone;
+    }
+
+    /**
+     * Attach the authenticated user resolved by middleware.
+     *
+     * @param array<string, mixed> $user
+     */
+    public function withUser(array $user): self
+    {
+        $clone = clone $this;
+        $clone->user = $user;
+        return $clone;
+    }
+
+    /** @return array<string, mixed>|null */
+    public function user(): ?array
+    {
+        return $this->user;
     }
 }

@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace App\Controllers;
 
+use App\Core\Request;
 use App\Core\Response;
 
 /**
@@ -30,7 +31,7 @@ final class ScoreImageController
     /**
      * Store an uploaded image. Expects a multipart field named `scoreImage`.
      */
-    public function upload(): Response
+    public function upload(Request $request): Response
     {
         if (!isset($_FILES['scoreImage']) || $_FILES['scoreImage']['error'] === UPLOAD_ERR_NO_FILE) {
             return Response::json(['error' => 'No image provided.'], 422);
@@ -73,7 +74,7 @@ final class ScoreImageController
     /**
      * Serve a previously uploaded image so the frontend can display it.
      */
-    public function serve(string $filename): Response
+    public function serve(Request $request, string $filename): Response
     {
         $filename = basename($filename); // strip any path separators
 
@@ -95,8 +96,17 @@ final class ScoreImageController
             return Response::json(['error' => 'Not found'], 404);
         }
 
+        if (!is_readable($path)) {
+            return Response::json(['error' => 'Permission denied'], 403);
+        }
+
+        $content = @file_get_contents($path);
+        if ($content === false) {
+            return Response::json(['error' => 'Could not read file'], 500);
+        }
+
         return new Response(
-            (string) file_get_contents($path),
+            $content,
             200,
             [
                 'Content-Type' => $mimeTypes[$extension],
