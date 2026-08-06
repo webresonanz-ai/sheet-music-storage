@@ -11,11 +11,12 @@ use App\Models\User;
 /**
  * Authentication and role-based access control.
  *
- * - Public paths (no token needed): `/api/auth/*`
- * - Protected read paths (any logged-in user): GET on `/api/sheet-music`,
- *   `/api/uploads/score-img/{filename}`
- * - Admin-only paths (role `admin`): all other methods on `/api/sheet-music`,
- *   `/api/uploads/score-img`
+ * - Public read paths (no token needed): GET on `/api/sheet-music`,
+ *   `/api/sheet-music/{id}`, `/api/uploads/score-img/{filename}` — anyone may
+ *   browse the collection and view details.
+ * - Public paths (no token needed): `/api/auth/*` except `/api/auth/me`.
+ * - Admin-only paths (role `admin`): all other methods on `/api/sheet-music`
+ *   and `/api/uploads/score-img` (create, edit, delete, upload).
  */
 final class AuthMiddleware implements MiddlewareInterface
 {
@@ -33,6 +34,11 @@ final class AuthMiddleware implements MiddlewareInterface
     public function handle(Request $request, callable $next): Response
     {
         $path = $request->path();
+
+        // Public read: anyone may browse the collection and view score images.
+        if ($this->isPublicRead($request)) {
+            return $next($request);
+        }
 
         if (!$this->isProtected($path)) {
             return $next($request);
@@ -61,6 +67,19 @@ final class AuthMiddleware implements MiddlewareInterface
         return $next($request->withUser($user));
     }
 
+    private function isPublicRead(Request $request): bool
+    {
+        if (!in_array($request->method(), self::READ_METHODS, true)) {
+            return false;
+        }
+
+        if (preg_match('#^/api/uploads/score-img/[^/]+$#', $request->path()) === 1) {
+            return true;
+        }
+
+        return preg_match('#^/api/sheet-music(?:/[0-9]+)?$#', $request->path()) === 1;
+    }
+
     private function isProtected(string $path): bool
     {
         foreach (self::PUBLIC_PREFIXES as $prefix) {
@@ -70,11 +89,6 @@ final class AuthMiddleware implements MiddlewareInterface
                 }
                 return false;
             }
-        }
-
-        // Allow public access to GET /api/uploads/score-img/{filename}
-        if (preg_match('#^/api/uploads/score-img/[^/]+$#', $path)) {
-            return false;
         }
 
         return str_starts_with($path, '/api/sheet-music')

@@ -121,7 +121,6 @@ final class ScoreImageController
         if (function_exists('finfo_open')) {
             $info = finfo_open(FILEINFO_MIME_TYPE);
             $mime = finfo_file($info, $path);
-            finfo_close($info);
             return is_string($mime) ? $mime : null;
         }
 

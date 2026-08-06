@@ -197,8 +197,15 @@
                 <span class="piece-subtitle">{{ formatDate(item.createdAt) }}</span>
               </td>
               <td class="text-end">
-                <template v-if="auth.isAdmin">
-                  <div class="btn-group gap-2">
+                <div class="btn-group gap-2">
+                  <button
+                    @click="openDetail(item)"
+                    class="btn btn-outline-primary btn-icon view"
+                    title="View details"
+                  >
+                    <i class="bi bi-eye"></i>
+                  </button>
+                  <template v-if="auth.isAdmin">
                     <button
                       @click="openEdit(item)"
                       class="btn btn-outline-primary btn-icon edit"
@@ -213,9 +220,8 @@
                     >
                       <i class="bi bi-trash"></i>
                     </button>
-                  </div>
-                </template>
-                <span v-else class="piece-subtitle"><i class="bi bi-lock me-1"></i>Read-only</span>
+                  </template>
+                </div>
               </td>
             </tr>
           </tbody>
@@ -288,6 +294,9 @@
         </div>
       </div>
     </div>
+
+    <!-- Detail modal -->
+    <SheetMusicDetailModal :item="detailItem" @close="closeDetail" />
   </div>
 </template>
 
@@ -296,6 +305,7 @@ import { ref, computed, watch, onMounted, onBeforeUnmount } from 'vue'
 import { useSheetMusicStore } from '../stores/sheetMusic'
 import { useAuthStore } from '../stores/auth'
 import { useSheetMusicModal } from '../composables/sheetMusicModal'
+import SheetMusicDetailModal from '../components/SheetMusicDetailModal.vue'
 import { Modal } from 'bootstrap'
 
 const store = useSheetMusicStore()
@@ -306,6 +316,7 @@ const filterGenre = ref('')
 const sortBy = ref('newest')
 const currentPage = ref(1)
 const itemToDelete = ref(null)
+const detailItem = ref(null)
 let deleteModal = null
 let searchTimer = null
 
@@ -433,6 +444,14 @@ const pageNumbers = computed(() => {
 const confirmDelete = (item) => {
   itemToDelete.value = item
   deleteModal.show()
+}
+
+const openDetail = (item) => {
+  detailItem.value = item
+}
+
+const closeDetail = () => {
+  detailItem.value = null
 }
 
 const deleteItem = async () => {
