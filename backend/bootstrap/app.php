@@ -40,6 +40,7 @@ $router->get('/api/auth/me', [$auth, 'me']);
 // Sheet music (protected by AuthMiddleware)
 $router->get('/api/sheet-music', [$sheetMusic, 'index']);
 $router->post('/api/sheet-music', [$sheetMusic, 'store']);
+$router->post('/api/sheet-music/import-excel', [$sheetMusic, 'importExcel']);
 $router->get('/api/sheet-music/{id}', [$sheetMusic, 'show']);
 $router->put('/api/sheet-music/{id}', [$sheetMusic, 'update']);
 $router->patch('/api/sheet-music/{id}', [$sheetMusic, 'update']);

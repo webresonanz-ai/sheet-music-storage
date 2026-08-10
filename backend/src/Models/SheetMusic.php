@@ -135,21 +135,68 @@ final class SheetMusic
     public function create(array $data): array
     {
         $stmt = $this->db->prepare(
-            'INSERT INTO sheet_music (title, subtitle, composer, arranger, year, genre, score_img)
-             VALUES (:title, :subtitle, :composer, :arranger, :year, :genre, :score_img)'
+            'INSERT INTO sheet_music (title, subtitle, composer, arranger, year, genre, score_img, location, shelf_id, category, publisher)
+             VALUES (:title, :subtitle, :composer, :arranger, :year, :genre, :score_img, :location, :shelf_id, :category, :publisher)'
         );
 
         $stmt->execute([
             'title' => $data['title'],
             'subtitle' => $data['subtitle'] ?? null,
-            'composer' => $data['composer'],
+            'composer' => $data['composer'] ?? null,
             'arranger' => $data['arranger'] ?? null,
             'year' => $data['year'],
             'genre' => $data['genre'],
             'score_img' => $data['score_img'] ?? null,
+            'location' => $data['location'] ?? null,
+            'shelf_id' => $data['shelf_id'] ?? null,
+            'category' => $data['category'] ?? null,
+            'publisher' => $data['publisher'] ?? null,
         ]);
 
         return $this->findById((int) $this->db->lastInsertId());
+    }
+
+    /**
+     * Insert many records inside a single transaction.
+     *
+     * @param list<array<string, mixed>> $rows each row must already be validated/cleaned
+     * @return int number of inserted rows
+     */
+    public function createMany(array $rows): int
+    {
+        if ($rows === []) {
+            return 0;
+        }
+
+        $stmt = $this->db->prepare(
+            'INSERT INTO sheet_music (title, subtitle, composer, arranger, year, genre, score_img, location, shelf_id, category, publisher)
+             VALUES (:title, :subtitle, :composer, :arranger, :year, :genre, :score_img, :location, :shelf_id, :category, :publisher)'
+        );
+
+        $this->db->beginTransaction();
+        try {
+            foreach ($rows as $data) {
+                $stmt->execute([
+                    'title' => $data['title'],
+                    'subtitle' => $data['subtitle'] ?? null,
+                    'composer' => $data['composer'] ?? null,
+                    'arranger' => $data['arranger'] ?? null,
+                    'year' => $data['year'],
+                    'genre' => $data['genre'],
+                    'score_img' => $data['score_img'] ?? null,
+                    'location' => $data['location'] ?? null,
+                    'shelf_id' => $data['shelf_id'] ?? null,
+                    'category' => $data['category'] ?? null,
+                    'publisher' => $data['publisher'] ?? null,
+                ]);
+            }
+            $this->db->commit();
+        } catch (\Throwable $e) {
+            $this->db->rollBack();
+            throw $e;
+        }
+
+        return count($rows);
     }
 
     /**
@@ -170,7 +217,11 @@ final class SheetMusic
                     arranger = :arranger,
                     year = :year,
                     genre = :genre,
-                    score_img = :score_img
+                    score_img = :score_img,
+                    location = :location,
+                    shelf_id = :shelf_id,
+                    category = :category,
+                    publisher = :publisher
               WHERE id = :id'
         );
 
@@ -178,11 +229,15 @@ final class SheetMusic
             'id' => $id,
             'title' => $data['title'],
             'subtitle' => $data['subtitle'] ?? null,
-            'composer' => $data['composer'],
+            'composer' => $data['composer'] ?? null,
             'arranger' => $data['arranger'] ?? null,
             'year' => $data['year'],
             'genre' => $data['genre'],
             'score_img' => $data['score_img'] ?? null,
+            'location' => $data['location'] ?? null,
+            'shelf_id' => $data['shelf_id'] ?? null,
+            'category' => $data['category'] ?? null,
+            'publisher' => $data['publisher'] ?? null,
         ]);
 
         return $this->findById($id);
@@ -215,12 +270,16 @@ final class SheetMusic
     {
         return [
             'id' => (int) $row['id'],
+            'location' => $row['location'],
+            'shelfId' => $row['shelf_id'],
             'title' => $row['title'],
             'subtitle' => $row['subtitle'],
             'composer' => $row['composer'],
             'arranger' => $row['arranger'],
             'year' => (int) $row['year'],
             'genre' => $row['genre'],
+            'category' => $row['category'],
+            'publisher' => $row['publisher'],
             'scoreImg' => $row['score_img'],
             'createdAt' => $row['created_at'],
             'updatedAt' => $row['updated_at'],

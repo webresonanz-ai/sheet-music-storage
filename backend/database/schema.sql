@@ -14,19 +14,25 @@ DROP TABLE IF EXISTS sheet_music;
 
 CREATE TABLE sheet_music (
     id          INT UNSIGNED NOT NULL AUTO_INCREMENT,
+    location    VARCHAR(255) NULL,
+    shelf_id    VARCHAR(80)  NULL,
     title       VARCHAR(255) NOT NULL,
     subtitle    VARCHAR(255) NULL,
-    composer    VARCHAR(255) NOT NULL,
+    composer    VARCHAR(255) NULL,
     arranger    VARCHAR(255) NULL,
     year        INT UNSIGNED NOT NULL,
     genre       VARCHAR(80)  NOT NULL,
+    category    VARCHAR(80)  NULL,
+    publisher   VARCHAR(255) NULL,
     score_img   VARCHAR(255) NULL,
     created_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP,
     updated_at  TIMESTAMP    NOT NULL DEFAULT CURRENT_TIMESTAMP
                             ON UPDATE CURRENT_TIMESTAMP,
     PRIMARY KEY (id),
     KEY idx_genre (genre),
-    KEY idx_composer (composer)
+    KEY idx_composer (composer),
+    KEY idx_location (location),
+    KEY idx_category (category)
 ) ENGINE=InnoDB;
 
 DROP TABLE IF EXISTS users;

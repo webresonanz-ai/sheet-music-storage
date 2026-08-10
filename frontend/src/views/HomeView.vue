@@ -169,7 +169,7 @@
               <th>Title</th>
               <th>Composer</th>
               <th class="d-none d-sm-table-cell">Era</th>
-              <th>Year</th>
+              <th>Category</th>
               <th class="d-none d-lg-table-cell">Added</th>
               <th class="text-end">Actions</th>
             </tr>
@@ -191,7 +191,7 @@
                 </span>
               </td>
               <td>
-                <span class="year-pill"><i class="bi bi-calendar3 text-muted"></i>{{ item.year }}</span>
+                <span class="year-pill"><i class="bi bi-tag text-muted"></i>{{ item.category || '—' }}</span>
               </td>
               <td class="d-none d-lg-table-cell">
                 <span class="piece-subtitle">{{ formatDate(item.createdAt) }}</span>

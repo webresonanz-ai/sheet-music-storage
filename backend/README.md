@@ -7,7 +7,8 @@ Composer's autoloader or the built-in PSR-4 autoloader).
 
 ## Requirements
 
-- PHP 8.1+ with `pdo_mysql` and `json`
+- PHP 8.1+ with `pdo_mysql`, `json`, `zip` and `simplexml` (zip + simplexml are
+  needed for the Excel import)
 - MySQL 5.7+ / MariaDB 10+
 - Optional: Apache with `mod_rewrite`, or Composer for `composer install`
 
@@ -42,8 +43,10 @@ backend/
     │   └── JsonBodyMiddleware.php  # Decodes JSON request bodies
     ├── Controllers/
     │   └── SheetMusicController.php
-    └── Models/
-        └── SheetMusic.php
+    ├── Models/
+    │   └── SheetMusic.php
+    └── Utils/
+        └── XlsxReader.php        # Dependency-free .xlsx parser (zip + simplexml)
 ```
 
 ## Setup
@@ -97,6 +100,7 @@ To add middleware: create a class implementing `MiddlewareInterface`, then
 |----------|--------------------------------|----------------------------------|
 | GET      | `/api/sheet-music`                 | List all pieces (newest first)   |
 | POST     | `/api/sheet-music`                 | Create a piece (HTTP 201)        |
+| POST     | `/api/sheet-music/import-excel`    | Bulk import from an `.xlsx` file |
 | GET      | `/api/sheet-music/{id}`            | Fetch a single piece             |
 | PUT/PATCH| `/api/sheet-music/{id}`            | Update a piece                   |
 | DELETE   | `/api/sheet-music/{id}`            | Delete a piece                   |
@@ -116,19 +120,74 @@ Response (camelCase, matching the frontend store):
 ```json
 {
   "id": 7,
+  "location": null,
+  "shelfId": null,
   "title": "Gymnopedie No. 1",
   "subtitle": null,
   "composer": "Erik Satie",
   "arranger": null,
   "year": 1888,
   "genre": "Classical (1750 - 1820)",
+  "category": null,
+  "publisher": null,
+  "scoreImg": null,
   "createdAt": "2026-08-03 15:36:24",
   "updatedAt": "2026-08-03 15:36:24"
 }
 ```
 
-Validation: `title`, `composer`, `year`, `genre` are required; `subtitle` and
-`arranger` optional. Failures return `422` with a `fields` object.
+Validation: `title`, `year`, `genre` are required; `composer`, `subtitle`,
+`arranger`, `location`, `shelf_id`, `category`, `publisher` are optional.
+Failures return `422` with a `fields` object.
+
+## Bulk import from Excel
+
+`POST /api/sheet-music/import-excel` accepts an `.xlsx` file (multipart field
+`file`, max 10 MB). The first row must be the header row; each following row is
+one record. The `id` is always auto-incremented by the database.
+
+Supported columns (header names are matched case-insensitively, ignoring
+spaces/underscores, e.g. `Shelf ID`, `shelf_id` and `ShelfID` all work):
+
+| Column      | Required | Notes                                        |
+|-------------|----------|----------------------------------------------|
+| `location`  | optional | Where the piece is stored                    |
+| `shelf_id`  | optional | Shelf / box identifier                       |
+| `title`     | yes      |                                              |
+| `subtitle`  | optional |                                              |
+| `composer`  | optional |                                              |
+| `arranger`  | optional |                                              |
+| `genre`     | no       | Defaults to `Common` when left empty         |
+| `category`  | optional | Repertoire, Etudes, Recital, ...             |
+| `publisher` | optional |                                              |
+| `year`      | no       | Defaults to the current year when empty      |
+
+If any row fails validation the whole import is rolled back (`422`) and the
+response lists each problem with its spreadsheet row number, e.g.:
+
+```bash
+curl -X POST http://127.0.0.1:8000/api/sheet-music/import-excel \
+  -H "Authorization: Bearer <admin-token>" \
+  -F "file=@pieces.xlsx"
+```
+
+```json
+{
+  "error": "Import failed. Fix the highlighted rows and try again.",
+  "imported": 0,
+  "errors": [
+    { "row": 4, "field": "title", "message": "Title is required." }
+  ]
+}
+```
+
+On success all rows are inserted inside a single transaction:
+
+```json
+{ "message": "Imported 12 sheet music records.", "imported": 12 }
+```
+
+Only admins can import (same access rules as `POST /api/sheet-music`).
 
 ## Frontend integration
 
