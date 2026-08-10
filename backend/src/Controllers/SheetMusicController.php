@@ -195,9 +195,7 @@ final class SheetMusicController
 
     private const IMPORT_REQUIRED = ['title'];
 
-    private const IMPORT_OPTIONAL = ['location', 'shelf_id', 'subtitle', 'composer', 'arranger', 'category', 'publisher'];
-
-    private const DEFAULT_GENRE = 'Common';
+    private const IMPORT_OPTIONAL = ['location', 'shelf_id', 'subtitle', 'composer', 'arranger', 'genre', 'category', 'publisher'];
 
     private const HEADER_ALIASES = [
         'location' => 'location',
@@ -330,8 +328,6 @@ final class SheetMusicController
                 }
             }
         }
-
-        $clean['genre'] = $cellAt('genre') ?? self::DEFAULT_GENRE;
 
         $year = $cellAt('year');
         if ($year === null) {

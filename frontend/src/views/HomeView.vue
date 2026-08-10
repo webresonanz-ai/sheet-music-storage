@@ -94,28 +94,14 @@
           </div>
         </div>
         <div class="col-lg-4">
-          <div class="d-flex align-items-center gap-2 flex-sm-wrap">
-            <i class="bi bi-tags text-muted"></i>
-            <div class="era-chips">
-              <span
-                class="era-chip clear"
-                :class="{ active: filterGenre === '' }"
-                @click="setGenre('')"
-              >
-                All
-              </span>
-              <span
-                v-for="era in genreList"
-                :key="era.name"
-                class="era-chip"
-                :class="{ active: filterGenre === era.name }"
-                @click="toggleGenre(era.name)"
-              >
-                <span class="chip-dot" :style="{ background: era.dot }"></span>
-                <span>{{ era.short }}</span>
-                <span class="chip-count">{{ era.count }}</span>
-              </span>
-            </div>
+          <div class="input-group">
+            <span class="input-group-text bg-white border-end-0"><i class="bi bi-tags text-muted"></i></span>
+            <select v-model="filterGenre" class="form-select">
+              <option value="">All genres</option>
+              <option v-for="era in genreList" :key="era.name" :value="era.name">
+                {{ era.short }} ({{ era.count }})
+              </option>
+            </select>
           </div>
         </div>
         <div class="col-lg-3">
@@ -329,13 +315,17 @@ const genres = {
   modern: { name: 'Contemporary/Modern', short: 'Modern', dot: '#c0558a' }
 }
 
-const totalEras = Object.values(genres).length
+const totalEras = computed(() => Object.keys(store.genreCounts).length)
+const erasCovered = computed(() => totalEras.value)
 
 const genreList = computed(() =>
-  Object.values(genres).map(g => ({
-    ...g,
-    count: store.genreCounts[g.name] || 0
-  }))
+  Object.entries(store.genreCounts)
+    .map(([name, count]) => ({
+      name,
+      short: shortGenre(name),
+      count
+    }))
+    .sort((a, b) => b.count - a.count)
 )
 
 const hasQuery = computed(
@@ -343,7 +333,6 @@ const hasQuery = computed(
 )
 
 const uniqueComposers = computed(() => store.stats.uniqueComposers)
-const erasCovered = computed(() => store.stats.erasCovered)
 
 const yearSpanLabel = computed(() => {
   const { minYear, maxYear } = store.stats
@@ -374,15 +363,11 @@ onBeforeUnmount(() => {
   clearTimeout(searchTimer)
 })
 
-const setGenre = (genre) => { filterGenre.value = genre }
-
-const toggleGenre = (genre) => {
-  filterGenre.value = filterGenre.value === genre ? '' : genre
-}
-
 const shortGenre = (name) => {
-  for (const g of Object.values(genres)) if (g.name === name) return g.short
-  return name
+  if (!name) return 'Others'
+  const base = String(name).split(' (')[0].replace(/\s*Era$/, '')
+  for (const g of Object.values(genres)) if (g.name === base) return g.short
+  return base
 }
 
 const getGenreClass = (genre) => {

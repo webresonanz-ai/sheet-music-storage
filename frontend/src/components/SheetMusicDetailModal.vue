@@ -137,7 +137,7 @@ const scoreUrl = computed(() =>
 )
 
 const shortGenre = (name) => {
-  if (!name) return 'Uncategorized'
+  if (!name) return 'Others'
   const base = name.split(' (')[0].replace(/\s*Era$/, '')
   const map = {
     'Early/Medieval': 'Early/Medieval',

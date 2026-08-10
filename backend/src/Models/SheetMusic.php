@@ -50,8 +50,12 @@ final class SheetMusic
         $params = [];
 
         if ($genre !== '') {
-            $where[] = 'genre = :genre';
-            $params['genre'] = $genre;
+            if ($genre === 'Others') {
+                $where[] = "(genre IS NULL OR genre = '')";
+            } else {
+                $where[] = 'genre = :genre';
+                $params['genre'] = $genre;
+            }
         }
 
         if ($search !== '') {
@@ -87,11 +91,15 @@ final class SheetMusic
         ];
     }
 
-    /** @return array<string, int> genre => number of pieces */
+    /** @return array<string, int> genre => number of pieces (empty genre buckets under "Others") */
     public function genreCounts(): array
     {
         $rows = $this->db
-            ->query('SELECT genre, COUNT(*) AS cnt FROM sheet_music GROUP BY genre')
+            ->query(
+                "SELECT COALESCE(NULLIF(genre, ''), 'Others') AS genre, COUNT(*) AS cnt
+                 FROM sheet_music
+                 GROUP BY COALESCE(NULLIF(genre, ''), 'Others')"
+            )
             ->fetchAll();
 
         $counts = [];
@@ -145,7 +153,7 @@ final class SheetMusic
             'composer' => $data['composer'] ?? null,
             'arranger' => $data['arranger'] ?? null,
             'year' => $data['year'],
-            'genre' => $data['genre'],
+            'genre' => $data['genre'] ?? null,
             'score_img' => $data['score_img'] ?? null,
             'location' => $data['location'] ?? null,
             'shelf_id' => $data['shelf_id'] ?? null,
@@ -182,7 +190,7 @@ final class SheetMusic
                     'composer' => $data['composer'] ?? null,
                     'arranger' => $data['arranger'] ?? null,
                     'year' => $data['year'],
-                    'genre' => $data['genre'],
+                    'genre' => $data['genre'] ?? null,
                     'score_img' => $data['score_img'] ?? null,
                     'location' => $data['location'] ?? null,
                     'shelf_id' => $data['shelf_id'] ?? null,
@@ -232,7 +240,7 @@ final class SheetMusic
             'composer' => $data['composer'] ?? null,
             'arranger' => $data['arranger'] ?? null,
             'year' => $data['year'],
-            'genre' => $data['genre'],
+            'genre' => $data['genre'] ?? null,
             'score_img' => $data['score_img'] ?? null,
             'location' => $data['location'] ?? null,
             'shelf_id' => $data['shelf_id'] ?? null,

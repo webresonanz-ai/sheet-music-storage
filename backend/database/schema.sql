@@ -21,7 +21,7 @@ CREATE TABLE sheet_music (
     composer    VARCHAR(255) NULL,
     arranger    VARCHAR(255) NULL,
     year        INT UNSIGNED NOT NULL,
-    genre       VARCHAR(80)  NOT NULL,
+    genre       VARCHAR(80)  NULL,
     category    VARCHAR(80)  NULL,
     publisher   VARCHAR(255) NULL,
     score_img   VARCHAR(255) NULL,

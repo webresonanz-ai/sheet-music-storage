@@ -136,9 +136,9 @@ Response (camelCase, matching the frontend store):
 }
 ```
 
-Validation: `title`, `year`, `genre` are required; `composer`, `subtitle`,
-`arranger`, `location`, `shelf_id`, `category`, `publisher` are optional.
-Failures return `422` with a `fields` object.
+Validation: `title`, `year`, `genre` are required in the forms; `composer`,
+`subtitle`, `arranger`, `location`, `shelf_id`, `category`, `publisher` are
+optional. Failures return `422` with a `fields` object.
 
 ## Bulk import from Excel
 
@@ -157,7 +157,7 @@ spaces/underscores, e.g. `Shelf ID`, `shelf_id` and `ShelfID` all work):
 | `subtitle`  | optional |                                              |
 | `composer`  | optional |                                              |
 | `arranger`  | optional |                                              |
-| `genre`     | no       | Defaults to `Common` when left empty         |
+| `genre`     | no       | Stored as `NULL` when empty (shown as "Others") |
 | `category`  | optional | Repertoire, Etudes, Recital, ...             |
 | `publisher` | optional |                                              |
 | `year`      | no       | Defaults to the current year when empty      |
