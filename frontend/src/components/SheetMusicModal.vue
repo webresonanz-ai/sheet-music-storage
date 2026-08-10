@@ -217,6 +217,7 @@
 import { ref, reactive, computed, watch } from 'vue'
 import { useSheetMusicStore } from '../stores/sheetMusic'
 import { useSheetMusicModal } from '../composables/sheetMusicModal'
+import { compressImage } from '../utils/imageCompressor'
 
 const store = useSheetMusicStore()
 const { state, closeModal } = useSheetMusicModal()
@@ -278,7 +279,7 @@ const onFileSelected = (event) => {
   const file = event.target.files && event.target.files[0]
   if (!file) return
   imageError.value = ''
-  previewUrl.value = URL.createObjectURL(file)
+  imageUploading.value = true
   uploadImage(file)
 }
 
@@ -301,7 +302,9 @@ const clearScoreImage = () => {
 const uploadImage = async (file) => {
   imageUploading.value = true
   try {
-    const result = await store.uploadScoreImage(file)
+    const compressed = await compressImage(file, { maxBytes: 100 * 1024 })
+    previewUrl.value = URL.createObjectURL(compressed)
+    const result = await store.uploadScoreImage(compressed)
     uploadedUrl.value = result.url
   } catch (e) {
     imageError.value = e.message || 'Image upload failed.'
