@@ -157,6 +157,48 @@
 
                 <div class="col-md-6">
                   <label class="form-label">
+                    <i class="bi bi-geo-alt field-icon me-1"></i>Location
+                    <span class="req-star">- optional</span>
+                  </label>
+                  <input
+                    v-model="form.location"
+                    type="text"
+                    class="form-control"
+                    placeholder="e.g., Cabinet A"
+                  />
+                  <div class="form-hint"><i class="bi bi-info-circle me-1"></i>Where this piece is stored.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="bi bi-box field-icon me-1"></i>Shelf ID
+                    <span class="req-star">- optional</span>
+                  </label>
+                  <input
+                    v-model="form.shelf_id"
+                    type="text"
+                    class="form-control"
+                    placeholder="e.g., S-01"
+                  />
+                  <div class="form-hint"><i class="bi bi-info-circle me-1"></i>Shelf or box identifier.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
+                    <i class="bi bi-collection field-icon me-1"></i>Category
+                    <span class="req-star">- optional</span>
+                  </label>
+                  <input
+                    v-model="form.category"
+                    type="text"
+                    class="form-control"
+                    placeholder="e.g., Repertoire, Etudes, Recital"
+                  />
+                  <div class="form-hint"><i class="bi bi-info-circle me-1"></i>How this piece is categorized.</div>
+                </div>
+
+                <div class="col-md-6">
+                  <label class="form-label">
                     <i class="bi bi-calendar field-icon me-1"></i>Year <span class="req-star">*</span>
                   </label>
                   <input
@@ -234,7 +276,7 @@ const genres = [
 const isEdit = computed(() => state.mode === 'edit')
 const currentYear = new Date().getFullYear()
 
-const form = reactive({ title: '', subtitle: '', composer: '', arranger: '', year: '', genre: '' })
+const form = reactive({ title: '', subtitle: '', composer: '', arranger: '', year: '', genre: '', location: '', shelf_id: '', category: '' })
 const errors = reactive({})
 const isSubmitting = ref(false)
 const submitError = ref('')
@@ -269,6 +311,9 @@ const populateForm = () => {
     form.arranger = state.item.arranger || ''
     form.year = state.item.year != null ? String(state.item.year) : ''
     form.genre = genres.find(g => shortGenreName(g) === state.item.genre) || state.item.genre
+    form.location = state.item.location || ''
+    form.shelf_id = state.item.shelfId || ''
+    form.category = state.item.category || ''
     genreAuto = true
     uploadedUrl.value = state.item.scoreImg || ''
     previewUrl.value = state.item.scoreImg ? `${API_BASE}${state.item.scoreImg}` : ''
@@ -388,6 +433,9 @@ const submitForm = async () => {
     arranger: form.arranger.trim() || null,
     year: form.year.trim(),
     genre: shortGenreName(form.genre),
+    location: form.location.trim() || null,
+    shelf_id: form.shelf_id.trim() || null,
+    category: form.category.trim() || null,
     score_img: uploadedUrl.value || null
   }
 

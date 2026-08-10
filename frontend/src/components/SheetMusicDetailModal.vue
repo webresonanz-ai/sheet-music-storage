@@ -57,6 +57,24 @@
                 </div>
               </div>
 
+              <div class="col-md-6" v-if="item.location">
+                <div class="detail-block">
+                  <div class="detail-label">
+                    <i class="bi bi-geo-alt field-icon me-1"></i>Location
+                  </div>
+                  <div class="detail-value">{{ item.location }}</div>
+                </div>
+              </div>
+
+              <div class="col-md-6" v-if="item.shelfId">
+                <div class="detail-block">
+                  <div class="detail-label">
+                    <i class="bi bi-box field-icon me-1"></i>Shelf ID
+                  </div>
+                  <div class="detail-value">{{ item.shelfId }}</div>
+                </div>
+              </div>
+
               <div class="col-md-6">
                 <div class="detail-block">
                   <div class="detail-label">
